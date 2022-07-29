@@ -13,9 +13,11 @@ Please visit the [FraudLabs Pro Articles & Tutorials](https://www.fraudlabspro.c
 We offer you a flexible solution to identify a fraud order. You can use our FraudLabs Pro score to determine a fraud order or customize your own validation rules to target a specific case, or a combination of both.
 
 * **Free**
+
 We are not offering you a trial version, but a free version to start protecting your online business. It’s absolutely free if your monthly orders are less than 500 transactions. There is no upfront credit card information needed, commitment, hidden cost and whatsoever.
 
 * **Trustworthy**
+
 We have been in the fraud prevention industry for more than 10 years. Thousands of our clients are currently using our FraudLabs Pro solution to protect their e-commerce sites from fraud.
 
 * **Key Features**
