@@ -76,6 +76,45 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 			$ip = $this->config->get('fraud_fraudlabspro_simulate_ip');
 		}
 
+		$payment_mode = $data['payment_code'];
+		if ($payment_mode === 'ccsave') {
+			$paymentMode = 'creditcard';
+		} elseif ($payment_mode === 'cashondelivery') {
+			$paymentMode = 'cod';
+		} elseif ($payment_mode === 'paypal_standard' || $payment_mode === 'paypal_express') {
+			$paymentMode = 'paypal';
+		} else {
+			$paymentMode = $payment_mode;
+		}
+
+		// Get products SKU
+		$item_sku = '';
+		$qty = 0;
+		$order_products = $this->db->query("SELECT p.`sku`, o.`quantity` FROM `" . DB_PREFIX . "order_product` o JOIN `" . DB_PREFIX . "product` p ON o.`product_id` = p.`product_id` WHERE o.`order_id` = '" . (int)$data['order_id'] . "'");
+		foreach ($order_products->rows as $order_product) {
+			$item_quantity = (int)$order_product['quantity'];
+			if ($order_product['sku'] != '') {
+				$item_sku .= $order_product['sku'] . ':' . $item_quantity . ',';
+			}
+			$qty += $item_quantity;
+		}
+		$item_sku = rtrim($item_sku, ',');
+
+		if (preg_match('/^\d+(\.\d)*$/', $qty)) {
+			$qty = ceil($qty);
+		}
+
+		// Get coupon information
+		$coupon_code = '';
+		$coupon_amt = '';
+		$coupon_type = '';
+		$order_coupon = $this->db->query("SELECT c.`code`, o.`value`, c.`type` FROM `" . DB_PREFIX . "order_total` o JOIN `" . DB_PREFIX . "coupon` c WHERE o.`order_id` = '" . (int)$data['order_id'] . "' AND o.`code` = 'coupon' AND o.`title` LIKE CONCAT('%', c.`code`, '%')");
+		if ($order_coupon->num_rows > 0) {
+			$coupon_code = $order_coupon->row['code'];
+			$coupon_amt = -($order_coupon->row['value']);
+			$coupon_type = (($order_coupon->row['type'] == 'p') ? 'percentage' : 'fixed_amount');
+		}
+
 		$request['key'] = $this->config->get('fraud_fraudlabspro_key');
 		$request['ip'] = $ip;
 		$request['ip_remoteadd'] = $ip_remoteadd;
@@ -85,12 +124,12 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		$request['ip_forwarded'] = $ip_forwarded;
 		$request['first_name'] = $data['firstname'];
 		$request['last_name'] = $data['lastname'];
-		$request['bill_addr'] = $data['payment_address_1'];
-		$request['bill_city'] = $data['payment_city'];
-		$request['bill_state'] = $data['payment_zone'];
+		$request['bill_addr'] = $data['payment_address_1'] ? $data['payment_address_1'] : $data['shipping_address_1'];
+		$request['bill_city'] = $data['payment_city'] ? $data['payment_city'] : $data['shipping_city'];
+		$request['bill_state'] = $data['payment_zone'] ? $data['payment_zone'] : $data['shipping_zone'];
 		$request['bill_country'] = $data['payment_iso_code_2'];
-		$request['bill_zip_code'] = $data['payment_postcode'];
-		$request['email_domain'] = utf8_substr(strrchr($data['email'], '@'), 1);
+		$request['bill_zip_code'] = $data['payment_postcode'] ? $data['payment_postcode'] : $data['shipping_postcode'];
+		$request['email_domain'] = substr($data['email'], strpos($data['email'], '@' ) + 1);
 		$request['user_phone'] = $data['telephone'];
 
 		if ($data['shipping_method']) {
@@ -106,16 +145,21 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		$request['email'] = $data['email'];
 		$request['email_hash'] = $this->hashIt($data['email']);
 		$request['amount'] = $this->currency->format($data['total'], $data['currency_code'], $data['currency_value'], false);
-		$request['quantity'] = 1;
+		$request['quantity'] = $qty;
 		$request['currency'] = $data['currency_code'];
-		$request['payment_mode'] = $data['payment_code'];
+		$request['payment_gateway'] = $data['payment_code'];
+		$request['payment_mode'] = $paymentMode;
 		$request['user_order_id'] = $data['order_id'];
 		$request['flp_checksum'] = (isset($_COOKIE['flp_checksum'])) ? $_COOKIE['flp_checksum'] : '';
 		$request['bin_no'] = (isset($_SESSION['flp_cc_bin'])) ? $_SESSION['flp_cc_bin'] : '';
 		$request['card_hash'] = (isset($_SESSION['flp_cc_hash'])) ? $_SESSION['flp_cc_hash'] : '';
+		$request['items'] = $item_sku;
+		$request['coupon_code'] = $coupon_code;
+		$request['coupon_amount'] = $coupon_amt;
+		$request['coupon_type'] = $coupon_type;
 		$request['format'] = 'json';
 		$request['source'] = 'opencart';
-		$request['source_version'] = '3.0.3.8';
+		$request['source_version'] = '3.0.4.0';
 
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, 'https://api.fraudlabspro.com/v1/order/screen?' . http_build_query($request));
