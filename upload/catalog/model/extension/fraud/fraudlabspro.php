@@ -150,6 +150,7 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		$request['payment_gateway'] = $data['payment_code'];
 		$request['payment_mode'] = $paymentMode;
 		$request['user_order_id'] = $data['order_id'];
+		$request['device_fingerprint'] = (isset($_COOKIE['flp_device'])) ? $_COOKIE['flp_device'] : '';
 		$request['flp_checksum'] = (isset($_COOKIE['flp_checksum'])) ? $_COOKIE['flp_checksum'] : '';
 		$request['bin_no'] = (isset($_SESSION['flp_cc_bin'])) ? $_SESSION['flp_cc_bin'] : '';
 		$request['card_hash'] = (isset($_SESSION['flp_cc_hash'])) ? $_SESSION['flp_cc_hash'] : '';
@@ -159,7 +160,7 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		$request['coupon_type'] = $coupon_type;
 		$request['format'] = 'json';
 		$request['source'] = 'opencart';
-		$request['source_version'] = '3.0.4.0';
+		$request['source_version'] = '3.0.5.0';
 
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, 'https://api.fraudlabspro.com/v1/order/screen?' . http_build_query($request));
