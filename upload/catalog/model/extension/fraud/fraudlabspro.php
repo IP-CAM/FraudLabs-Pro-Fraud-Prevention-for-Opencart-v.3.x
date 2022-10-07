@@ -90,11 +90,12 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		// Get products SKU
 		$item_sku = '';
 		$qty = 0;
-		$order_products = $this->db->query("SELECT p.`sku`, o.`quantity` FROM `" . DB_PREFIX . "order_product` o JOIN `" . DB_PREFIX . "product` p ON o.`product_id` = p.`product_id` WHERE o.`order_id` = '" . (int)$data['order_id'] . "'");
+		$order_products = $this->db->query("SELECT p.`sku`, o.`quantity`, p.`shipping`, t.`title` FROM `" . DB_PREFIX . "order_product` o JOIN `" . DB_PREFIX . "product` p ON o.`product_id` = p.`product_id` JOIN `" . DB_PREFIX . "tax_class` t ON p.`tax_class_id` = t.`tax_class_id` WHERE o.`order_id` = '" . (int)$data['order_id'] . "'");
 		foreach ($order_products->rows as $order_product) {
 			$item_quantity = (int)$order_product['quantity'];
 			if ($order_product['sku'] != '') {
-				$item_sku .= $order_product['sku'] . ':' . $item_quantity . ',';
+				$item_type = ($order_product['shipping']) ? 'physical' : ((strpos(strtolower($order_product['title']), 'downloadable')!== false) ? 'downloadable' :'virtual');
+				$item_sku .= $order_product['sku'] . ':' . $item_quantity . ':' . $item_type . ',';
 			}
 			$qty += $item_quantity;
 		}
@@ -160,7 +161,7 @@ class ModelExtensionFraudFraudLabsPro extends Model {
 		$request['coupon_type'] = $coupon_type;
 		$request['format'] = 'json';
 		$request['source'] = 'opencart';
-		$request['source_version'] = '3.0.5.0';
+		$request['source_version'] = '3.0.6.0';
 
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, 'https://api.fraudlabspro.com/v1/order/screen?' . http_build_query($request));
